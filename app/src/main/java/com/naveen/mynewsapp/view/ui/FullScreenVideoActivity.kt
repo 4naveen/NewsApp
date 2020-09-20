@@ -4,10 +4,8 @@ import android.app.PictureInPictureParams
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.util.Log
 import android.util.Rational
-import android.widget.TextView
+import android.view.WindowManager
 import android.widget.Toast
 import android.widget.VideoView
 import androidx.annotation.RequiresApi
@@ -17,36 +15,32 @@ import com.naveen.mynewsapp.service.utils.AppConstant
 import com.naveen.mynewsapp.service.utils.FullScreenMediaController
 
 
-class VideoViewActivity : AppCompatActivity() {
-    private var url_list: ArrayList<String> ?= ArrayList()
-    private var position:Int = 0
-    var mVideoView: VideoView? = null
-    private var mBufferingTextView: TextView? = null
-    var mediacontroller: FullScreenMediaController?=null
-    private val PLAYBACK_TIME = "play_time"
-    private var mCurrentPosition = 0
-
+class FullScreenVideoActivity : AppCompatActivity() {
+    private var mVideoView: VideoView? = null
+    private var mediaController: FullScreenMediaController? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_video_view)
+        setContentView(R.layout.activity_full_screen_video)
 
-        url_list=intent.getStringArrayListExtra("urls")
-        position=intent.getIntExtra("position", 0)
-        Log.e("pos", position.toString())
+        mVideoView = findViewById(R.id.videoview)
 
-        mVideoView = findViewById(R.id.videoview);
-        mBufferingTextView = findViewById(R.id.buffering_textview);
-
-        mediacontroller= FullScreenMediaController(this)
-
-        if (savedInstanceState != null) {
-            mCurrentPosition = savedInstanceState.getInt(PLAYBACK_TIME);
+        val fullScreen = intent.getStringExtra("fullScreenInd")
+        if ("y" == fullScreen) {
+            window.setFlags(
+                WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN
+            )
+            supportActionBar!!.hide()
         }
 
-        mVideoView!!.setMediaController(mediacontroller);
-        mediacontroller!!.setMediaPlayer(mVideoView);
+        val videoUri: Uri = Uri.parse(AppConstant.VIDEO_URL)
+
+        mVideoView!!.setVideoURI(videoUri)
+
+        mediaController = FullScreenMediaController(this)
 
     }
+
     override fun onStart() {
         super.onStart()
 
@@ -69,35 +63,24 @@ class VideoViewActivity : AppCompatActivity() {
         // stopped and released at this time.
         releasePlayer()
     }
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-
-        // Save the current playback position (in milliseconds) to the
-        // instance state bundle.
-        outState.putInt(PLAYBACK_TIME, mVideoView!!.currentPosition)
-    }
     private fun initializePlayer() {
         // Show the "Buffering..." message while the video loads.
-        mBufferingTextView!!.visibility = VideoView.VISIBLE
 
         // Buffer and decode the video sample.
-        val videoUri: Uri = Uri.parse(url_list!!.get(position))
-        AppConstant.VIDEO_URL=url_list!!.get(position)
+        val videoUri: Uri = Uri.parse(AppConstant.VIDEO_URL)
         mVideoView!!.setVideoURI(videoUri)
 
         // Listener for onPrepared() event (runs after the media is prepared).
         mVideoView!!.setOnPreparedListener { // Hide buffering message.
-            mBufferingTextView!!.visibility = VideoView.INVISIBLE
-            mediacontroller!!.setAnchorView(mVideoView);
+            mediaController!!.setAnchorView(mVideoView);
 
-            mVideoView!!.setMediaController(mediacontroller);
+            mVideoView!!.setMediaController(mediaController);
 
             // Restore saved position, if available.
-            if (mCurrentPosition > 0) {
-                mVideoView!!.seekTo(mCurrentPosition)
+            if (AppConstant.SEEK_POSITION > 0) {
+                mVideoView!!.seekTo(AppConstant.SEEK_POSITION)
             } else {
                 mVideoView!!.seekTo(1)
-                startProgressChange()
             }
 
             // Start playing!
@@ -108,7 +91,7 @@ class VideoViewActivity : AppCompatActivity() {
         // playing).
         mVideoView!!.setOnCompletionListener {
             Toast.makeText(
-                this@VideoViewActivity,
+                this@FullScreenVideoActivity,
                 R.string.toast_message,
                 Toast.LENGTH_SHORT
             ).show()
@@ -136,21 +119,5 @@ class VideoViewActivity : AppCompatActivity() {
             .build()
         mVideoView!!.setMediaController(null)
         enterPictureInPictureMode(params)
-    }
-
-    fun startProgressChange(){
-        val mHandler1=Handler()
-        val mRunnable = object : Runnable {
-            override fun run() {
-                AppConstant.SEEK_POSITION=mVideoView!!.currentPosition
-                Log.i("TAG", "::run: getCurrentPosition = " + mVideoView!!.currentPosition)
-                if (mVideoView!!.isPlaying) {
-                    mHandler1.postDelayed(this, 250)
-                }
-            }
-        }
-        mHandler1.post(mRunnable)
-
-
     }
 }
