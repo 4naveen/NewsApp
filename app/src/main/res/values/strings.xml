@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">NewsApp</string>
+    <string name="buffering_string">Buffering</string>
+    <string name="toast_message">video Completed</string>
+</resources>
