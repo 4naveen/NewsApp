@@ -150,7 +150,5 @@ class VideoViewActivity : AppCompatActivity() {
             }
         }
         mHandler1.post(mRunnable)
-
-
     }
 }
